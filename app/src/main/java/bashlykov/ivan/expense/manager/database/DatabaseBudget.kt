@@ -5,7 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-
 import bashlykov.ivan.expense.manager.database.converters.LocalDateTimeConverter
 import bashlykov.ivan.expense.manager.database.dao.DaoBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
@@ -27,11 +26,12 @@ abstract class DatabaseBudget : RoomDatabase() {
 			return INSTANCE ?:
 			synchronized(this) {
 				Room.databaseBuilder(
-					context,
+					context.applicationContext,
 					DatabaseBudget::class.java,
 					"app_database"
-				).build().also {
-					INSTANCE = it
+				).fallbackToDestructiveMigration()
+					.build().also { instance ->
+					INSTANCE = instance
 				}
 			}
 		}

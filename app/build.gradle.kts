@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
 	id("com.android.application")
 	id("org.jetbrains.kotlin.android")
-	id("kotlin-kapt")
 	id("com.google.devtools.ksp")
 }
 
@@ -96,6 +95,8 @@ dependencies {
 	androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 	debugImplementation("androidx.compose.ui:ui-tooling")
 	debugImplementation("androidx.compose.ui:ui-test-manifest")
+	// Всплывающий экран
+	implementation("androidx.core:core-splashscreen:1.0.1")
 	// LiveData для MVC
 	implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
 	// Room для работы с SQLite (https://developer.android.com/jetpack/androidx/releases/room)

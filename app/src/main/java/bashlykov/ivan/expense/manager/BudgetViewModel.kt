@@ -7,10 +7,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.savedstate.SavedStateRegistryOwner
-import kotlinx.coroutines.launch
-
 import bashlykov.ivan.expense.manager.database.dao.DaoBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 
 class BudgetViewModel(
@@ -41,7 +43,7 @@ class BudgetViewModel(
 		return@runBlocking budgetDao.getBudget()
 	}
 
-	fun insertExpense(budget: Budget) = viewModelScope.launch {
+	fun insertExpense(budget: Budget) = viewModelScope.launch(Dispatchers.IO) {
 		budgetDao.insertBudget(budget)
 	}
 

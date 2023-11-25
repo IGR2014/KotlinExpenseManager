@@ -1,6 +1,7 @@
 package bashlykov.ivan.expense.manager
 
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,14 +42,26 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import bashlykov.ivan.expense.manager.settings.SettingsApplication
+import bashlykov.ivan.expense.manager.settings.SettingsLanguage
+import bashlykov.ivan.expense.manager.settings.SettingsPalette
+import bashlykov.ivan.expense.manager.settings.SettingsTheme
 import bashlykov.ivan.expense.manager.ui.theme.ExpenseManagerTheme
 
 
 class ActivitySettings : ComponentActivity() {
 
+	// Чтение настроек
+	private val prefs by lazy {
+		getPreferences(Context.MODE_PRIVATE)
+	}
+
 	// Данные настроек
 	private val settings by lazy {
-		SettingsApplication()
+		SettingsApplication(
+			colorPalette = SettingsPalette.entries[prefs.getInt(SettingsPalette::class.simpleName, SettingsPalette.DEFAULT.ordinal)],
+			colorTheme = SettingsTheme.entries[prefs.getInt(SettingsTheme::class.simpleName, SettingsTheme.DEVICE.ordinal)],
+			language = SettingsLanguage.entries[prefs.getInt(SettingsLanguage::class.simpleName, SettingsLanguage.ENGLISH.ordinal)]
+		)
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,7 +98,12 @@ class ActivitySettings : ComponentActivity() {
 						},
 						navigationIcon = {
 							IconButton(
-								onClick = {}//onCancelClick
+								onClick = {
+									// Установка результата
+									setResult(RESULT_CANCELED)
+									// Закрытие активности
+									finish()
+								}
 							) {
 								Icon(
 									imageVector = Icons.Filled.ArrowBack,
@@ -97,7 +115,18 @@ class ActivitySettings : ComponentActivity() {
 							// Save button
 							IconButton(
 								onClick = {
-									//onSaveClick(editedSettings)
+									// Сохранение настроек
+									with (prefs.edit()) {
+										putInt(SettingsLanguage::class.simpleName, editedSettings.language.ordinal)
+										putInt(SettingsPalette::class.simpleName, editedSettings.colorPalette.ordinal)
+										putInt(SettingsTheme::class.simpleName, editedSettings.colorTheme.ordinal)
+										apply()
+									}
+									// Установка результата
+									setResult(RESULT_OK)
+									// Закрытие активности
+									finish()
+									// Скрыть контроллер клавиатуры
 									keyboardController?.hide()
 								}
 							) {
@@ -109,36 +138,33 @@ class ActivitySettings : ComponentActivity() {
 						}
 					)
 
-					// Language setting
+					// Язык
 					SettingItem(
 						icon = Icons.Filled.Person,
 						title = "Language",
 						value = editedSettings.language.name,
 						onClick = {
-							// Handle language setting change
-							// You can show a dialog or navigate to a language selection screen
+							// TODO
 						}
 					)
 
-					// Theme setting
+					// Тема
 					SettingItem(
 						icon = Icons.Filled.Edit,
 						title = "Theme",
 						value = editedSettings.colorTheme.name,
 						onClick = {
-							// Handle theme setting change
-							// You can show a dialog or navigate to a theme selection screen
+							// TODO
 						}
 					)
 
-					// Color palette setting
+					// Цветовая палитра
 					SettingItem(
 						icon = Icons.Filled.List,
 						title = "Color Palette",
 						value = editedSettings.colorPalette.name,
 						onClick = {
-							// Handle color palette setting change
-							// You can show a dialog or navigate to a color palette selection screen
+							// TODO
 						}
 					)
 				}

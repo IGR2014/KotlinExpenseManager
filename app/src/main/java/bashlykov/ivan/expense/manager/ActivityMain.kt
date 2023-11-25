@@ -1,5 +1,6 @@
 package bashlykov.ivan.expense.manager
 
+
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
@@ -7,6 +8,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -45,13 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
 import bashlykov.ivan.expense.manager.database.Category
 import bashlykov.ivan.expense.manager.database.DatabaseBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
@@ -61,32 +62,49 @@ import kotlin.math.abs
 
 class ActivityMain : ComponentActivity() {
 
+    // БД
+    private val database: DatabaseBudget by lazy {
+        DatabaseBudget.getDatabase(applicationContext)
+    }
+
+	// Модель получения данных из БД
+	private val budgetViewModel: BudgetViewModel by viewModels {
+		BudgetViewModel.provideFactory(
+			database.budgetDAO(),
+			owner = this
+		)
+	}
+
 	// Контракт на запуск активности ввода нового значения дохода/расхода
-	private val launcherNewBudget by lazy {
-		registerForActivityResult(
-			ActivityResultContracts.StartActivityForResult()
-		) { result ->
-			// Успешно ?
-			if (result.resultCode == RESULT_OK) {
-				// Android T+ ?
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-					result.data?.getParcelableExtra(
-						Budget::class.simpleName,
-						Budget::class.java
-					)
+	private val launcherNewBudget = registerForActivityResult(
+		ActivityResultContracts.StartActivityForResult()
+	) { result ->
+		// Успешно ?
+		if (result.resultCode == RESULT_OK) {
+			// Android T+ ?
+			val budget = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+				result.data?.getParcelableExtra(
+					Budget::class.simpleName,
+					Budget::class.java
+				)
+			} else {
+				@Suppress("DEPRECATION")
+				result.data?.getParcelableExtra(
+					Budget::class.simpleName
+				)
+			}
+			// Получили данные ?
+			if (null != budget) {
+				// Id == 0 ?
+				if (0L == budget.id) {
+					// Добавить новый
+					budgetViewModel.insertBudget(budget)
 				} else {
-					@Suppress("DEPRECATION")
-					result.data?.getParcelableExtra<Budget>(
-						Budget::class.simpleName
-					)
+					// Обновить существующий
+					budgetViewModel.updateBudget(budget)
 				}
 			}
 		}
-	}
-
-	// БД
-	private val database: DatabaseBudget by lazy {
-		DatabaseBudget.getDatabase(applicationContext)
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,14 +119,13 @@ class ActivityMain : ComponentActivity() {
 						2000
 					} ?: 0
 				)
-				.alpha(0.25f)
 				.withEndAction {
+					// Закроем начальный экран
+					viewProvider.remove()
 					// Задаём GUI
 					setContent {
 						ExpenseManagerApp()
 					}
-					// Закроем начальный экран
-					viewProvider.remove()
 				}
 				.start()
 		}
@@ -273,13 +290,6 @@ class ActivityMain : ComponentActivity() {
 				)
 			}
 		} else {
-			// Модель получения данных из БД
-			val budgetViewModel: BudgetViewModel = viewModel(
-				factory = BudgetViewModel.provideFactory(
-					database.budgetDAO(),
-					owner = LocalSavedStateRegistryOwner.current
-				)
-			)
 			// Ленивое обращение к БД
 			budgetViewModel.getAllBudget().observeAsState(mutableListOf())
 		}
@@ -356,20 +366,32 @@ class ActivityMain : ComponentActivity() {
 
 	@Composable
 	fun BudgetInfoView() {
+		// Ленивое обращение к БД
+		val totalBudget = budgetViewModel.getAllBudget().observeAsState(mutableListOf())
+		// Общий доход
+		val totalIncome = totalBudget.value
+			.filter { it.category == Category.INCOME || it.category == Category.SALARY }
+			.sumOf { it.amount }
+		// Общий расход
+		val totalOutcome = totalBudget.value
+			.filter { it.category != Category.INCOME && it.category != Category.SALARY }
+			.sumOf { it.amount }
+		// Общий бюджет
+		val totalAmount = totalIncome - totalOutcome
 		// Карточка с общим бюджетом
 		val totalAmountCard = Budget(
 			comment = "Total",
-			amount = 10000
+			amount = totalAmount
 		)
 		// Карточка с общим доходом
 		val totalIncomeCard = Budget(
 			comment = "Income",
-			amount = 15000
+			amount = totalIncome
 		)
 		// Карточка с общим расходом
 		val totalOutcomeCard = Budget(
 			comment = "Outcome",
-			amount = -5000
+			amount = totalOutcome
 		)
 
 		Column(
@@ -454,8 +476,23 @@ class ActivityMain : ComponentActivity() {
 							}
 							IconButton(
 								onClick = {
+									// Запуск активности статистики
+									startActivity(
+										Intent(
+											applicationContext,
+											ActivityStatistics::class.java
+										)
+									)
+								}
+							) {
+								Icon(
+									imageVector = Icons.Filled.List,
+									contentDescription = "Open Statistics")
+							}
+							IconButton(
+								onClick = {
 									// Запуск активности настроек
-									launcherNewBudget.launch(
+									startActivity(
 										Intent(
 											applicationContext,
 											ActivitySettings::class.java

@@ -32,7 +32,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -41,9 +40,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,32 +54,16 @@ import bashlykov.ivan.expense.manager.database.tables.Budget
 import bashlykov.ivan.expense.manager.ui.theme.ExpenseManagerTheme
 import java.time.Instant
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
+import kotlin.math.abs
 
 
 class ActivityBudgetChange : ComponentActivity() {
 
-	// Получение значения переданного данной активности
-	private val currentBudget by lazy {
-		// Android T+ ?
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-			intent?.getParcelableExtra(
-				Budget::class.simpleName,
-				Budget::class.java
-			)
-		} else {
-			@Suppress("DEPRECATION")
-			intent?.getParcelableExtra(
-				Budget::class.simpleName
-			)
-		}?: Budget(
-			amount = 500,
-			category = Category.OTHER,
-			comment = "Sample Comment"
-		)
-	}
+	private lateinit var currentBudget: Budget
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -101,6 +86,29 @@ class ActivityBudgetChange : ComponentActivity() {
 						.fillMaxSize()
 						.padding(16.dp)
 				) {
+					// В режиме Preview?
+					currentBudget = if (LocalInspectionMode.current) {
+						// Данные для примера
+						Budget(
+							amount = 500,
+							category = Category.OTHER,
+							comment = "Sample Comment"
+						)
+					} else {
+						// Android T+ ?
+						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+							intent?.getParcelableExtra(
+								Budget::class.simpleName,
+								Budget::class.java
+							)
+						} else {
+							@Suppress("DEPRECATION")
+							intent?.getParcelableExtra(
+								Budget::class.simpleName
+							)
+						} ?: Budget()
+					}
+
 					// Верхняя панель главного экрана
 					TopAppBar(
 						title = { Text(text = "Expense Manager") },
@@ -123,7 +131,31 @@ class ActivityBudgetChange : ComponentActivity() {
 							IconButton(
 								onClick = {
 									// Установка результата
-									setResult(RESULT_OK, Intent().putExtra(Budget::class.simpleName, currentBudget))
+									setResult(
+										RESULT_OK,
+										Intent().putExtra(
+											Budget::class.simpleName,
+											currentBudget.copy(
+												amount = when (currentBudget.category) {
+													Category.INCOME,
+													Category.SALARY -> {
+														abs(currentBudget.amount)
+													}
+													Category.FOOD,
+													Category.ENTERTAINMENT,
+													Category.TRANSPORT,
+													Category.RENT,
+													Category.PETS,
+													Category.HEALTH,
+													Category.BEAUTY,
+													Category.TRANSFER,
+													Category.OTHER -> {
+														-abs(currentBudget.amount)
+													}
+												}
+											)
+										)
+									)
 									// Закрытие активности
 									finish()
 								}
@@ -136,31 +168,9 @@ class ActivityBudgetChange : ComponentActivity() {
 						}
 					)
 
-					// В режиме Preview?
-					val budget = if (LocalInspectionMode.current) {
-						// Данные для примера
-						Budget(
-							amount = 500,
-							category = Category.OTHER,
-							comment = "Sample Comment"
-						)
-					} else {
-						// Android T+ ?
-						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-							intent?.getParcelableExtra(
-								"BUDGET",
-								Budget::class.java
-							)
-						} else {
-							@Suppress("DEPRECATION")
-							intent?.getParcelableExtra(
-								"BUDGET"
-							)
-						}?: Budget()
-					}
 					// Редактирование или создание новой статьи доходов/расходов
 					BudgetEditView(
-						budget = budget
+						budget = currentBudget
 					)
 				}
 			}
@@ -170,7 +180,7 @@ class ActivityBudgetChange : ComponentActivity() {
 
 	@Composable
 	fun BudgetEditView(budget: Budget) {
-		// Сохранение состояния нужніх переменніх
+		// Сохранение состояния нужных переменных
 		var editedBudget by remember {
 			mutableStateOf(budget)
 		}
@@ -184,10 +194,11 @@ class ActivityBudgetChange : ComponentActivity() {
 			isEditMode = isEditMode
 		) { updatedBudget ->
 			editedBudget = updatedBudget
+			currentBudget = updatedBudget
 		}
 	}
 
-	@OptIn(ExperimentalMaterial3Api::class)
+	@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 	@Composable
 	fun BudgetDetailsInput(budget: Budget, isEditMode: Boolean, onBudgetChange: (Budget) -> Unit) {
 		// Состояние выпадающего списка категории
@@ -206,15 +217,9 @@ class ActivityBudgetChange : ComponentActivity() {
 				ZoneId.systemDefault()
 			).toInstant().toEpochMilli()
 		)
-		val timePickerState = rememberTimePickerState(
-			initialHour = budget.dateTime.atZone(
-				ZoneId.systemDefault()
-			).hour,
-			initialMinute = budget.dateTime.atZone(
-				ZoneId.systemDefault()
-			).minute,
-			is24Hour = true
-		)
+
+		// Управление клавиатурой
+		val keyboardController = LocalSoftwareKeyboardController.current
 
 		// Отображение данных
 		Column(
@@ -231,21 +236,21 @@ class ActivityBudgetChange : ComponentActivity() {
 					)
 					onBudgetChange(newBudget)
 				},
-				label = { Text("Amount") },
-				keyboardOptions = KeyboardOptions(
+				label = {
+					Text(
+						text = "Amount"
+					)
+				},
+				keyboardOptions = KeyboardOptions.Default.copy(
 					keyboardType = KeyboardType.Number,
-					imeAction = if (isEditMode) {
-						ImeAction.Done
-					} else {
-						ImeAction.Next
-					}
+					imeAction = ImeAction.Done
 				),
 				keyboardActions = KeyboardActions(
-					onNext = { /* Handle Next button */ },
 					onDone = {
 						if (!isEditMode) {
 							onBudgetChange(budget)
 						}
+						keyboardController?.hide()
 					}
 				),
 				modifier = Modifier
@@ -258,7 +263,7 @@ class ActivityBudgetChange : ComponentActivity() {
 				value = budget.dateTime.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
 				onValueChange = {},
 				label = { Text("Date") },
-				enabled = true,
+				enabled = false,
 				modifier = Modifier
 					.fillMaxWidth()
 					.clickable {
@@ -309,7 +314,7 @@ class ActivityBudgetChange : ComponentActivity() {
 				value = budget.dateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
 				onValueChange = {},
 				label = { Text("Time") },
-				enabled = true,
+				enabled = false,
 				modifier = Modifier
 					.fillMaxWidth()
 					.clickable {
@@ -321,11 +326,18 @@ class ActivityBudgetChange : ComponentActivity() {
 				TimePickerDialog(
 					LocalContext.current,
 					{ _: Any, hour: Int, minute: Int ->
-						setContent {
-							Column {
-								Text("$hour:$minute")
-							}
-						}
+						val newBudget = budget.copy(
+							dateTime = LocalDateTime.ofInstant(
+								datePickerState.selectedDateMillis?.let { millis ->
+									Instant.ofEpochMilli(
+										millis
+									)
+								},
+								TimeZone.getDefault().toZoneId()
+							).with(LocalTime.of(hour, minute))
+						)
+						onBudgetChange(newBudget)
+						expandedTime = false
 					},
 					budget.dateTime.atZone(
 						ZoneId.systemDefault()
@@ -347,7 +359,7 @@ class ActivityBudgetChange : ComponentActivity() {
 					value = budget.category.name,
 					onValueChange = {},
 					label = { Text("Category") },
-					enabled = true,
+					enabled = false,
 					modifier = Modifier
 						.fillMaxWidth()
 						.clickable {
@@ -399,6 +411,7 @@ class ActivityBudgetChange : ComponentActivity() {
 						if (!isEditMode) {
 							onBudgetChange(budget)
 						}
+						keyboardController?.hide()
 					}
 				),
 				modifier = Modifier

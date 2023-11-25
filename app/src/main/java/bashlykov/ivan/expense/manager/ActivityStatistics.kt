@@ -1,16 +1,21 @@
 package bashlykov.ivan.expense.manager
 
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
@@ -37,6 +42,7 @@ import bashlykov.ivan.expense.manager.database.Category
 import bashlykov.ivan.expense.manager.database.DatabaseBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
 import bashlykov.ivan.expense.manager.ui.theme.ExpenseManagerTheme
+import kotlin.math.abs
 
 
 class ActivityStatistics : ComponentActivity() {
@@ -134,22 +140,40 @@ class ActivityStatistics : ComponentActivity() {
                         // Ленивое обращение к БД
                         budgetViewModel.getAllBudget().observeAsState(mutableListOf())
                     }
+                    // Общий доход/расход
+                    val totalBudget = budgetItems
+                        .filter { it.category == Category.SALARY || it.category == Category.INCOME }
+                        .sumOf { it.amount }
                     // Для каждой категории
-                    Category.entries.forEach { category ->
-                        // Общий доход/расход
-                        val totalBudget = budgetItems
-                            .filter { it.category == category }
-                            .sumOf { it.amount }
-                        StatisticsCard(
-                            title = category.name,
-                            value = totalBudget.toString(),
-                            icon = Icons.Filled.Warning,
-                            iconColor = if (totalBudget >= 0) {
-                                Color.Green
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(4.dp)
+                    ) {
+                        items(Category.entries) { category ->
+                            // Общий доход/расход
+                            val currentTotalBudget = budgetItems
+                                .filter { it.category == category }
+                                .sumOf { it.amount }
+                            // Общий % расхода от доходов
+                            val currentTotalPercent = if (0L != currentTotalBudget) {
+                                (currentTotalBudget.toDouble() / totalBudget) * 100.0
                             } else {
-                                Color.Red
+                                0.0
                             }
-                        )
+                            StatisticsCard(
+                                title = category.name,
+                                value = abs(currentTotalBudget),
+                                percent = abs(currentTotalPercent),
+                                icon = Icons.Filled.Warning,
+                                iconColor = if (currentTotalBudget > 0) {
+                                    Color(.5f, 1f, .5f)
+                                } else if (currentTotalBudget < 0) {
+                                    Color(1f, .5f, .5f)
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -158,44 +182,74 @@ class ActivityStatistics : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun StatisticsCard(title: String, value: String, icon: ImageVector, iconColor: Color) {
+    fun StatisticsCard(title: String, value: Long, percent: Double, icon: ImageVector, iconColor: Color) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(4.dp),
             onClick = {}
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = 0.5f)
+                            .background(color = iconColor)
                     )
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconColor
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                     )
                 }
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineSmall
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = title,
+                            color = iconColor,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = iconColor
+                        )
+                    }
+                    Text(
+                        text = "%d (%.1f%%)".format(abs(value), abs(percent)),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
             }
         }
     }
 
     @Composable
-    @Preview(showBackground = true)
+    @Preview(
+        name = "Statistics Activity (Dark)",
+        showBackground = true,
+        uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+    )
+    @Preview(
+        name = "Statistics Activity",
+        showBackground = true,
+        uiMode = Configuration.UI_MODE_NIGHT_NO
+    )
     fun StatisticsActivityPreview() {
 
         ExpenseManagerStatistics()

@@ -366,18 +366,59 @@ class ActivityMain : ComponentActivity() {
 
 	@Composable
 	fun BudgetInfoView() {
-		// Ленивое обращение к БД
-		val totalBudget = budgetViewModel.getAllBudget().observeAsState(mutableListOf())
+		// В режиме Preview?
+		val budgetItems by if (LocalInspectionMode.current) {
+			// Ленивое обращение к БД
+			remember {
+				mutableStateOf<List<Budget>>(
+					mutableListOf(
+						Budget(
+							comment = "Income",
+							amount = 5000,
+							category = Category.SALARY
+						),
+						Budget(
+							comment = "Outcome",
+							amount = -1000,
+							category = Category.RENT
+						),
+						Budget(
+							comment = "Outcome",
+							amount = -300,
+							category = Category.PETS
+						),
+						Budget(
+							comment = "Outcome",
+							amount = -2200,
+							category = Category.ENTERTAINMENT
+						),
+						Budget(
+							comment = "Income",
+							amount = 10000,
+							category = Category.SALARY
+						),
+						Budget(
+							comment = "Outcome",
+							amount = -1000,
+							category = Category.TRANSPORT
+						)
+					)
+				)
+			}
+		} else {
+			// Ленивое обращение к БД
+			budgetViewModel.getAllBudget().observeAsState(mutableListOf())
+		}
 		// Общий доход
-		val totalIncome = totalBudget.value
+		val totalIncome = budgetItems
 			.filter { it.category == Category.INCOME || it.category == Category.SALARY }
 			.sumOf { it.amount }
 		// Общий расход
-		val totalOutcome = totalBudget.value
+		val totalOutcome = budgetItems
 			.filter { it.category != Category.INCOME && it.category != Category.SALARY }
 			.sumOf { it.amount }
 		// Общий бюджет
-		val totalAmount = totalIncome - totalOutcome
+		val totalAmount = totalIncome + totalOutcome
 		// Карточка с общим бюджетом
 		val totalAmountCard = Budget(
 			comment = "Total",
@@ -487,7 +528,8 @@ class ActivityMain : ComponentActivity() {
 							) {
 								Icon(
 									imageVector = Icons.Filled.List,
-									contentDescription = "Open Statistics")
+									contentDescription = "Open Statistics"
+								)
 							}
 							IconButton(
 								onClick = {
@@ -502,7 +544,8 @@ class ActivityMain : ComponentActivity() {
 							) {
 								Icon(
 									imageVector = Icons.Filled.Settings,
-									contentDescription = "Open Settings")
+									contentDescription = "Open Settings"
+								)
 							}
 						}
 					)

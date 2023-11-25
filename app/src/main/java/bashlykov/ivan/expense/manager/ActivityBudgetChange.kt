@@ -12,14 +12,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -34,12 +41,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -228,56 +235,163 @@ class ActivityBudgetChange : ComponentActivity() {
 				.padding(16.dp)
 		) {
 			// Сумма
-			OutlinedTextField(
-				value = budget.amount.toString(),
-				onValueChange = { text ->
-					val newBudget = budget.copy(
-						amount = text.toLong()
-					)
-					onBudgetChange(newBudget)
-				},
-				label = {
-					Text(
-						text = "Amount"
-					)
-				},
-				keyboardOptions = KeyboardOptions.Default.copy(
-					keyboardType = KeyboardType.Number,
-					imeAction = ImeAction.Done
-				),
-				keyboardActions = KeyboardActions(
-					onDone = {
-						if (!isEditMode) {
-							onBudgetChange(budget)
-						}
-						keyboardController?.hide()
-					}
-				),
+			Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(bottom = 16.dp)
-			)
+					.wrapContentSize(Alignment.TopEnd),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
+					imageVector = Icons.Filled.ShoppingCart,
+					contentDescription = "Amount",
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.size(43.dp)
+						.padding(end = 8.dp)
+				)
+				OutlinedTextField(
+					value = budget.amount.toString(),
+					onValueChange = { text ->
+						val newBudget = budget.copy(
+							amount = text.toLong()
+						)
+						onBudgetChange(newBudget)
+					},
+					label = {
+						Text(
+							text = "Amount"
+						)
+					},
+					keyboardOptions = KeyboardOptions(
+						keyboardType = KeyboardType.Number,
+						imeAction = ImeAction.Done
+					),
+					keyboardActions = KeyboardActions(
+						onDone = {
+							if (!isEditMode) {
+								onBudgetChange(budget)
+							}
+							keyboardController?.hide()
+						}
+					),
+					modifier = Modifier
+						.fillMaxWidth()
+				)
+			}
 
 			// Дата
-			OutlinedTextField(
-				value = budget.dateTime.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-				onValueChange = {},
-				label = { Text("Date") },
-				enabled = false,
+			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.clickable {
-						expandedDate = true
-					}
-			)
-			if (expandedDate) {
-				// Диалог ввода даты
-				DatePickerDialog(
-					onDismissRequest = {
-						expandedDate = false
+					.padding(bottom = 16.dp)
+					.wrapContentSize(Alignment.TopEnd),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
+					imageVector = Icons.Filled.DateRange,
+					contentDescription = "Date",
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.size(43.dp)
+						.padding(end = 8.dp)
+				)
+				OutlinedTextField(
+					value = budget.dateTime.format(
+						DateTimeFormatter.ofPattern("dd.MM.yyyy")
+					),
+					onValueChange = {},
+					label = {
+						Text(
+							text = "Date"
+						)
 					},
-					confirmButton = {
-						TextButton(onClick = {
+					readOnly = true,
+					modifier = Modifier
+						.fillMaxWidth()
+						.clickable {
+							expandedDate = true
+						}
+				)
+				if (expandedDate) {
+					// Диалог ввода даты
+					DatePickerDialog(
+						onDismissRequest = {
+							expandedDate = false
+						},
+						confirmButton = {
+							TextButton(onClick = {
+								val newBudget = budget.copy(
+									dateTime = LocalDateTime.ofInstant(
+										datePickerState.selectedDateMillis?.let { millis ->
+											Instant.ofEpochMilli(
+												millis
+											)
+										},
+										TimeZone.getDefault().toZoneId()
+									)
+								)
+								onBudgetChange(newBudget)
+								expandedDate = false
+							}) {
+								Text(text = "Confirm")
+							}
+						},
+						dismissButton = {
+							TextButton(onClick = {
+								expandedDate = false
+							}) {
+								Text(text = "Cancel")
+							}
+						}
+					) {
+						DatePicker(
+							state = datePickerState,
+							modifier = Modifier
+								.fillMaxWidth()
+						)
+					}
+				}
+			}
+
+			// Время
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(bottom = 16.dp)
+					.wrapContentSize(Alignment.TopEnd),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
+					imageVector = Icons.Filled.DateRange,
+					contentDescription = "Time",
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.size(43.dp)
+						.padding(end = 8.dp)
+				)
+				OutlinedTextField(
+					value = budget.dateTime.format(
+						DateTimeFormatter.ofPattern("HH:mm:ss")
+					),
+					onValueChange = {},
+					label = {
+						Text(
+							text = "Time"
+						)
+					},
+					readOnly = true,
+					modifier = Modifier
+						.fillMaxWidth()
+						.clickable {
+							expandedTime = true
+						}
+				)
+				if (expandedTime) {
+					// Диалог ввода времени
+					TimePickerDialog(
+						LocalContext.current,
+						{ _: Any, hour: Int, minute: Int ->
 							val newBudget = budget.copy(
 								dateTime = LocalDateTime.ofInstant(
 									datePickerState.selectedDateMillis?.let { millis ->
@@ -286,138 +400,124 @@ class ActivityBudgetChange : ComponentActivity() {
 										)
 									},
 									TimeZone.getDefault().toZoneId()
-								)
+								).with(LocalTime.of(hour, minute))
 							)
 							onBudgetChange(newBudget)
-							expandedDate = false
-						}) {
-							Text(text = "Confirm")
-						}
-					},
-					dismissButton = {
-						TextButton(onClick = {
-							expandedDate = false
-						}) {
-							Text(text = "Cancel")
-						}
-					}
-				) {
-					DatePicker(
-						state = datePickerState,
-						modifier = Modifier.fillMaxWidth()
-					)
+							expandedTime = false
+						},
+						budget.dateTime.atZone(
+							ZoneId.systemDefault()
+						).hour,
+						budget.dateTime.atZone(
+							ZoneId.systemDefault()
+						).minute,
+						true
+					).show()
 				}
 			}
 
-			// Время
-			OutlinedTextField(
-				value = budget.dateTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-				onValueChange = {},
-				label = { Text("Time") },
-				enabled = false,
-				modifier = Modifier
-					.fillMaxWidth()
-					.clickable {
-						expandedTime = true
-					}
-			)
-			if (expandedTime) {
-				// Диалог ввода времени
-				TimePickerDialog(
-					LocalContext.current,
-					{ _: Any, hour: Int, minute: Int ->
-						val newBudget = budget.copy(
-							dateTime = LocalDateTime.ofInstant(
-								datePickerState.selectedDateMillis?.let { millis ->
-									Instant.ofEpochMilli(
-										millis
-									)
-								},
-								TimeZone.getDefault().toZoneId()
-							).with(LocalTime.of(hour, minute))
-						)
-						onBudgetChange(newBudget)
-						expandedTime = false
-					},
-					budget.dateTime.atZone(
-						ZoneId.systemDefault()
-					).hour,
-					budget.dateTime.atZone(
-						ZoneId.systemDefault()
-					).minute,
-					true
-				).show()
-			}
-
 			// Категория в виде выпадающего списка
-			Box(
+			Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(bottom = 16.dp)
+					.wrapContentSize(Alignment.TopEnd),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				OutlinedTextField(
-					value = budget.category.name,
-					onValueChange = {},
-					label = { Text("Category") },
-					enabled = false,
+				Icon(
+					imageVector = Icons.Filled.Star,
+					contentDescription = "Category",
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.size(43.dp)
+						.padding(end = 8.dp)
+				)
+				Box(
 					modifier = Modifier
 						.fillMaxWidth()
-						.clickable {
-							expandedCategory = true
-						}
-				)
-
-				DropdownMenu(
-					expanded = expandedCategory,
-					onDismissRequest = {
-						expandedCategory = false
-					},
-					modifier = Modifier.background(MaterialTheme.colorScheme.background)
 				) {
-					for (category in Category.entries) {
-						DropdownMenuItem(
-							text = {
-								Text(
-									text = category.name
-								)
-							},
-							onClick = {
-								val newBudget = budget.copy(
-									category = category
-								)
-								onBudgetChange(newBudget)
-								expandedCategory = false
+					OutlinedTextField(
+						value = budget.category.name,
+						onValueChange = {},
+						label = {
+							Text(
+								text = "Category"
+							)
+						},
+						readOnly = true,
+						modifier = Modifier
+							.fillMaxWidth()
+							.clickable {
+								expandedCategory = true
 							}
-						)
+					)
+					DropdownMenu(
+						expanded = expandedCategory,
+						onDismissRequest = {
+							expandedCategory = false
+						},
+						modifier = Modifier.background(MaterialTheme.colorScheme.background)
+					) {
+						for (category in Category.entries) {
+							DropdownMenuItem(
+								text = {
+									Text(
+										text = category.name
+									)
+								},
+								onClick = {
+									val newBudget = budget.copy(
+										category = category
+									)
+									onBudgetChange(newBudget)
+									expandedCategory = false
+								}
+							)
+						}
 					}
 				}
 			}
 
 			// Комментарий
-			OutlinedTextField(
-				value = budget.comment,
-				onValueChange = { text ->
-					val newBudget = budget.copy(
-						comment = text
-					)
-					onBudgetChange(newBudget)
-				},
-				label = { Text("Comment") },
-				keyboardOptions = KeyboardOptions.Default.copy(
-					imeAction = ImeAction.Done
-				),
-				keyboardActions = KeyboardActions(
-					onDone = {
-						if (!isEditMode) {
-							onBudgetChange(budget)
-						}
-						keyboardController?.hide()
-					}
-				),
+			Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(bottom = 16.dp)
-			)
+					.wrapContentSize(Alignment.TopEnd),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
+					imageVector = Icons.Filled.Person,
+					contentDescription = "Comment",
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.size(43.dp)
+						.padding(end = 8.dp)
+				)
+				OutlinedTextField(
+					value = budget.comment,
+					onValueChange = { text ->
+						val newBudget = budget.copy(
+							comment = text
+						)
+						onBudgetChange(newBudget)
+					},
+					label = { Text("Comment") },
+					keyboardOptions = KeyboardOptions.Default.copy(
+						imeAction = ImeAction.Done
+					),
+					keyboardActions = KeyboardActions(
+						onDone = {
+							if (!isEditMode) {
+								onBudgetChange(budget)
+							}
+							keyboardController?.hide()
+						}
+					),
+					modifier = Modifier
+						.fillMaxWidth()
+				)
+			}
 		}
 	}
 

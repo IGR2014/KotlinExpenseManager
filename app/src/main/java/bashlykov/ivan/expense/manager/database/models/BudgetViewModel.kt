@@ -1,4 +1,4 @@
-package bashlykov.ivan.expense.manager
+package bashlykov.ivan.expense.manager.database.models
 
 import android.os.Bundle
 import androidx.lifecycle.AbstractSavedStateViewModelFactory

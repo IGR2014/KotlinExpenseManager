@@ -1,4 +1,4 @@
-package bashlykov.ivan.expense.manager
+package bashlykov.ivan.expense.manager.ui
 
 
 import android.app.TimePickerDialog
@@ -9,7 +9,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -118,7 +120,11 @@ class ActivityBudgetChange : ComponentActivity() {
 
 					// Верхняя панель главного экрана
 					TopAppBar(
-						title = { Text(text = "Expense Manager") },
+						title = {
+							Text(
+								text = "Budget update"
+							)
+						},
 						navigationIcon = {
 							IconButton(
 								onClick = {
@@ -191,14 +197,10 @@ class ActivityBudgetChange : ComponentActivity() {
 		var editedBudget by remember {
 			mutableStateOf(budget)
 		}
-		val isEditMode by remember {
-			mutableStateOf(budget.id != 0L)
-		}
 
 		// Budget details
 		BudgetDetailsInput(
-			budget = editedBudget,
-			isEditMode = isEditMode
+			budget = editedBudget
 		) { updatedBudget ->
 			editedBudget = updatedBudget
 			currentBudget = updatedBudget
@@ -207,7 +209,7 @@ class ActivityBudgetChange : ComponentActivity() {
 
 	@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 	@Composable
-	fun BudgetDetailsInput(budget: Budget, isEditMode: Boolean, onBudgetChange: (Budget) -> Unit) {
+	fun BudgetDetailsInput(budget: Budget, onBudgetChange: (Budget) -> Unit) {
 		// Состояние выпадающего списка категории
 		var expandedCategory by remember {
 			mutableStateOf(false)
@@ -251,10 +253,16 @@ class ActivityBudgetChange : ComponentActivity() {
 						.padding(end = 8.dp)
 				)
 				OutlinedTextField(
-					value = budget.amount.toString(),
+					value = if (0L != budget.amount) {
+						budget.amount.toString()
+					} else {
+						""
+					},
 					onValueChange = { text ->
 						val newBudget = budget.copy(
-							amount = text.toLong()
+							amount = text.filter { char ->
+								char.isDigit()
+							}.toLong()
 						)
 						onBudgetChange(newBudget)
 					},
@@ -269,9 +277,6 @@ class ActivityBudgetChange : ComponentActivity() {
 					),
 					keyboardActions = KeyboardActions(
 						onDone = {
-							if (!isEditMode) {
-								onBudgetChange(budget)
-							}
 							keyboardController?.hide()
 						}
 					),
@@ -308,10 +313,18 @@ class ActivityBudgetChange : ComponentActivity() {
 					},
 					readOnly = true,
 					modifier = Modifier
-						.fillMaxWidth()
-						.clickable {
-							expandedDate = true
+						.fillMaxWidth(),
+					interactionSource = remember {
+						MutableInteractionSource()
+					}.also { interactionSource ->
+						LaunchedEffect(interactionSource) {
+							interactionSource.interactions.collect {
+								if (it is PressInteraction.Release) {
+									expandedDate = true
+								}
+							}
 						}
+					}
 				)
 				if (expandedDate) {
 					// Диалог ввода даты
@@ -382,10 +395,18 @@ class ActivityBudgetChange : ComponentActivity() {
 					},
 					readOnly = true,
 					modifier = Modifier
-						.fillMaxWidth()
-						.clickable {
-							expandedTime = true
+						.fillMaxWidth(),
+					interactionSource = remember {
+						MutableInteractionSource()
+					}.also { interactionSource ->
+						LaunchedEffect(interactionSource) {
+							interactionSource.interactions.collect {
+								if (it is PressInteraction.Release) {
+									expandedTime = true
+								}
+							}
 						}
+					}
 				)
 				if (expandedTime) {
 					// Диалог ввода времени
@@ -446,17 +467,27 @@ class ActivityBudgetChange : ComponentActivity() {
 						},
 						readOnly = true,
 						modifier = Modifier
-							.fillMaxWidth()
-							.clickable {
-								expandedCategory = true
+							.fillMaxWidth(),
+						interactionSource = remember {
+							MutableInteractionSource()
+						}.also { interactionSource ->
+							LaunchedEffect(interactionSource) {
+								interactionSource.interactions.collect {
+									if (it is PressInteraction.Release) {
+										expandedCategory = true
+									}
+								}
 							}
+						}
 					)
 					DropdownMenu(
 						expanded = expandedCategory,
 						onDismissRequest = {
 							expandedCategory = false
 						},
-						modifier = Modifier.background(MaterialTheme.colorScheme.background)
+						modifier = Modifier
+							.fillMaxWidth()
+							.background(MaterialTheme.colorScheme.background)
 					) {
 						for (category in Category.entries) {
 							DropdownMenuItem(
@@ -503,14 +534,12 @@ class ActivityBudgetChange : ComponentActivity() {
 						onBudgetChange(newBudget)
 					},
 					label = { Text("Comment") },
-					keyboardOptions = KeyboardOptions.Default.copy(
+					keyboardOptions = KeyboardOptions(
+						keyboardType = KeyboardType.Text,
 						imeAction = ImeAction.Done
 					),
 					keyboardActions = KeyboardActions(
 						onDone = {
-							if (!isEditMode) {
-								onBudgetChange(budget)
-							}
 							keyboardController?.hide()
 						}
 					),

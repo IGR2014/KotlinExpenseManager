@@ -1,4 +1,4 @@
-package bashlykov.ivan.expense.manager
+package bashlykov.ivan.expense.manager.ui
 
 
 import android.content.Intent
@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -53,9 +52,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import bashlykov.ivan.expense.manager.database.models.BudgetViewModel
 import bashlykov.ivan.expense.manager.database.Category
 import bashlykov.ivan.expense.manager.database.DatabaseBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
+import bashlykov.ivan.expense.manager.ui.settings.ActivitySettings
 import bashlykov.ivan.expense.manager.ui.theme.ExpenseManagerTheme
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
@@ -490,13 +491,10 @@ class ActivityMain : ComponentActivity() {
 				) {
 					// Верхняя панель главного экрана
 					TopAppBar(
-						title = { Text(text = "Expense Manager") },
-						navigationIcon = {
-							IconButton(
-								onClick = {}
-							) {
-								Icon(Icons.Filled.Menu, contentDescription = "Application Menu")
-							}
+						title = {
+							Text(
+								text = "Expense Manager"
+							)
 						},
 						actions = {
 							IconButton(

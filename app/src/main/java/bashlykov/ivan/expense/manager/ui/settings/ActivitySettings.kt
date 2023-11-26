@@ -1,20 +1,17 @@
-package bashlykov.ivan.expense.manager
+package bashlykov.ivan.expense.manager.ui.settings
 
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,8 +22,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -73,7 +68,7 @@ class ActivitySettings : ComponentActivity() {
 				modifier = Modifier.fillMaxSize(),
 				color = MaterialTheme.colorScheme.background
 			) {
-				var editedSettings by if (LocalInspectionMode.current) {
+				val editedSettings by if (LocalInspectionMode.current) {
 					remember {
 						mutableStateOf(
 							SettingsApplication(
@@ -120,7 +115,9 @@ class ActivitySettings : ComponentActivity() {
 				) {
 					TopAppBar(
 						title = {
-							Text("Settings")
+							Text(
+								text = "Settings"
+							)
 						},
 						navigationIcon = {
 							IconButton(
@@ -173,50 +170,21 @@ class ActivitySettings : ComponentActivity() {
 						}
 					)
 
-					//
-					var expandedLanguage by remember {
-						mutableStateOf(false)
-					}
-					var expandedTheme by remember {
-						mutableStateOf(true)
-					}
-					var expandedPalette by remember {
-						mutableStateOf(false)
-					}
-
 					// Язык
 					SettingItem(
 						icon = Icons.Filled.Person,
 						title = "Language",
 						value = editedSettings.language.name,
 						onClick = {
-							expandedLanguage = true
-						}
-					) {
-						DropdownMenu(
-							expanded = expandedLanguage,
-							onDismissRequest = {
-								expandedLanguage = false
-							},
-							modifier = Modifier.background(MaterialTheme.colorScheme.background)
-						) {
-							for (item in SettingsLanguage.entries) {
-								DropdownMenuItem(
-									text = {
-										Text(
-											text = item.name
-										)
-									},
-									onClick = {
-										editedSettings = editedSettings.copy(
-											language = item
-										)
-										expandedLanguage = false
-									}
+							// Запуск активности настроек языка
+							startActivity(
+								Intent(
+									applicationContext,
+									ActivityLanguage::class.java
 								)
-							}
+							)
 						}
-					}
+					)
 
 					// Тема
 					SettingItem(
@@ -224,91 +192,55 @@ class ActivitySettings : ComponentActivity() {
 						title = "Theme",
 						value = editedSettings.colorTheme.name,
 						onClick = {
-							expandedTheme = true
-						}
-					) {
-						DropdownMenu(
-							expanded = expandedTheme,
-							onDismissRequest = {
-								expandedTheme = false
-							},
-							modifier = Modifier.background(MaterialTheme.colorScheme.background)
-						) {
-							for (item in SettingsTheme.entries) {
-								DropdownMenuItem(
-									text = {
-										Text(
-											text = item.name
-										)
-									},
-									onClick = {
-										editedSettings = editedSettings.copy(
-											colorTheme = item
-										)
-										expandedTheme = false
-									}
+							// Запуск активности настроек темы
+							startActivity(
+								Intent(
+									applicationContext,
+									ActivityTheme::class.java
 								)
-							}
+							)
 						}
-					}
+					)
 
 					// Цветовая палитра
 					SettingItem(
 						icon = Icons.Filled.List,
-						title = "Color Palette",
+						title = "Color palette",
 						value = editedSettings.colorPalette.name,
 						onClick = {
-							expandedPalette = true
-						}
-					) {
-						DropdownMenu(
-							expanded = expandedPalette,
-							onDismissRequest = {
-								expandedPalette = false
-							},
-							modifier = Modifier.background(MaterialTheme.colorScheme.background)
-						) {
-							for (item in SettingsPalette.entries) {
-								DropdownMenuItem(
-									text = {
-										Text(
-											text = item.name
-										)
-									},
-									onClick = {
-										editedSettings = editedSettings.copy(
-											colorPalette = item
-										)
-										expandedPalette = false
-									}
+							// Запуск активности настроек палитры
+							startActivity(
+								Intent(
+									applicationContext,
+									ActivityPalette::class.java
 								)
-							}
+							)
 						}
-					}
+					)
 				}
 			}
 		}
 	}
 
 
+	@OptIn(ExperimentalMaterial3Api::class)
 	@Composable
-	fun SettingItem(icon: ImageVector, title: String, value: String, onClick: () -> Unit, content: @Composable () -> Unit) {
-		Box(
+	fun SettingItem(icon: ImageVector, title: String, value: String, onClick: () -> Unit) {
+		Card(
 			modifier = Modifier
 				.fillMaxWidth()
+				.padding(4.dp),
+			onClick = onClick
 		) {
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.height(56.dp)
-					.padding(16.dp)
-					.clickable(
-						onClick = onClick
-					),
+					.padding(16.dp),
 				verticalAlignment = Alignment.CenterVertically
 			) {
 				Icon(
 					imageVector = icon,
+					tint = MaterialTheme.colorScheme.primary,
 					contentDescription = title,
 					modifier = Modifier.size(24.dp)
 				)
@@ -318,11 +250,12 @@ class ActivitySettings : ComponentActivity() {
 				Column {
 					Text(
 						text = title,
-						style = MaterialTheme.typography.bodyLarge
+						color = MaterialTheme.colorScheme.primary,
+						style = MaterialTheme.typography.titleLarge
 					)
 					Text(
 						text = value,
-						style = MaterialTheme.typography.titleLarge,
+						style = MaterialTheme.typography.bodyLarge,
 						color = Color.Gray
 					)
 				}
@@ -331,10 +264,10 @@ class ActivitySettings : ComponentActivity() {
 				)
 				Icon(
 					imageVector = Icons.Filled.ArrowForward,
+					tint = MaterialTheme.colorScheme.primary,
 					contentDescription = "Navigate"
 				)
 			}
-			content()
 		}
 	}
 
@@ -349,7 +282,7 @@ class ActivitySettings : ComponentActivity() {
 		showBackground = true,
 		uiMode = Configuration.UI_MODE_NIGHT_NO
 	)
-	fun StatisticsActivityPreview() {
+	fun SettingsActivityPreview() {
 
 		ExpenseManagerSettings()
 

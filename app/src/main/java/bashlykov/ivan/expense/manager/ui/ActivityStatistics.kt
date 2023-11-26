@@ -1,4 +1,4 @@
-package bashlykov.ivan.expense.manager
+package bashlykov.ivan.expense.manager.ui
 
 
 import android.content.res.Configuration
@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import bashlykov.ivan.expense.manager.database.models.BudgetViewModel
 import bashlykov.ivan.expense.manager.database.Category
 import bashlykov.ivan.expense.manager.database.DatabaseBudget
 import bashlykov.ivan.expense.manager.database.tables.Budget
@@ -83,11 +84,16 @@ class ActivityStatistics : ComponentActivity() {
                 ) {
                     TopAppBar(
                         title = {
-                            Text("Statistics")
+                            Text(
+                                text = "Statistics"
+                            )
                         },
                         navigationIcon = {
                             IconButton(
-                                onClick = {}
+                                onClick = {
+                                    // Закрытие активности
+                                    finish()
+                                }
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.ArrowBack,
